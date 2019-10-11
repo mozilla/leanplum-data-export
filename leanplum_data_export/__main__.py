@@ -8,13 +8,19 @@ import click
 import logging
 import sys
 
-from .application import App
+from .export import LeanplumExporter
 
 
 @click.command()
-def export_leanplum():
-    app = App()
-    app.export_leanplum()
+@click.option("--app-id", required=True)
+@click.option("--client-key", required=True)
+@click.option("--date", required=True)
+@click.option("--bucket", required=True)
+@click.option("--prefix", default="")
+@click.option("--bq-dataset", required=True)
+def export_leanplum(app_id, client_key, date, bucket, prefix, bq_dataset):
+    exporter = LeanplumExporter(app_id, client_key)
+    exporter.export(date, bucket, prefix, bq_dataset)
 
 
 @click.group()
