@@ -84,7 +84,8 @@ class LeanplumExporter(object):
 
             parsed = self.filename_re.fullmatch(uri)
             if parsed is None:
-                raise Exception(f"Expected uri matching {LeanplumExporter.FILENAME_RE}, but got {uri}")
+                raise Exception((f"Expected uri matching {LeanplumExporter.FILENAME_RE}"
+                                 f", but got {uri}"))
 
             datatype, index = parsed.group(1), parsed.group(2)
             local_filename = f"{datatype}/{index}.{export_format}"
@@ -115,7 +116,8 @@ class LeanplumExporter(object):
         blobs = list(client.list_blobs(bucket, prefix=prefix, max_results=max_results))
 
         if len(blobs) == max_results:
-            raise Exception(f"Max result of {max_result} found at gs://{bucket.name}/{prefix}, increase limit or paginate")
+            raise Exception((f"Max result of {max_results} found at gs://{bucket.name}"
+                             f"/{prefix}, increase limit or paginate"))
 
         bucket.delete_blobs(blobs)
 
