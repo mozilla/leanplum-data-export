@@ -268,6 +268,7 @@ class TestExporter(object):
                 assert not os.path.isdir("outputsessions")
 
                 mock_bq_client.dataset.assert_any_call(dataset_name)
+                mock_bq_client.delete_table.assert_called_with(mock_table, not_found_ok=True)
                 MockBq.TableReference.assert_any_call(mock_dataset_ref, f"outputsessions_{date}")
                 MockBq.Table.assert_any_call(mock_table_ref)
                 MockBq.ExternalConfig.assert_any_call("CSV")

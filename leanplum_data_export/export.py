@@ -131,6 +131,8 @@ class LeanplumExporter(object):
             table_ref = bigquery.TableReference(dataset_ref, table_name)
             table = bigquery.Table(table_ref)
 
+            client.delete_table(table, not_found_ok=True)
+
             external_config = bigquery.ExternalConfig('CSV')
             external_config.source_uris = [f"{gcs_loc}/{t}/*"]
             external_config.autodetect = True
