@@ -24,7 +24,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
-	flake8 --max-line-length 100
+	flake8 leanplum_data_export/ tests/ --max-line-length 100
 
 test:
 	docker-compose run app test
@@ -43,7 +43,7 @@ shell:
 	docker-compose run app bash
 
 run:
-	docker-compose run app $(COMMAND)
+	docker-compose run -e GCLOUD_SERVICE_KEY app $(COMMAND)
 
 stop:
 	docker-compose down

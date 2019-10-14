@@ -1,0 +1,4 @@
+requests==2.22.0
+google-cloud==0.34.0
+google-cloud-storage==1.20.0
+google-cloud-bigquery==1.20.0
