@@ -24,7 +24,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
-	flake8 leanplum_data_export/ tests/ --max-line-length 100
+	flake8 .
 
 test:
 	docker-compose run app test

@@ -71,7 +71,8 @@ class TestExporter(object):
 
     @responses.activate
     def test_save_files(self, exporter):
-        file_uris = ['https://leanplum_export.storage.googleapis.com/export-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f-outputsessions-0']
+        file_uris = [('https://leanplum_export.storage.googleapis.com/export-'
+                      '5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f-outputsessions-0')]
         bucket = 'abucket'
         prefix = 'aprefix'
         file_body = b"data"
@@ -85,12 +86,15 @@ class TestExporter(object):
 
         with patch('leanplum_data_export.export.storage', spec=True) as MockStorage:
             self.file_contents = None
+
             def set_contents(filename):
                 with open(filename, "rb") as f:
                     self.file_contents = f.read()
 
             mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
             MockStorage.Client.return_value = mock_client
+
+            mock_client.list_blobs.side_effect = [[]]
             mock_client.get_bucket.return_value = mock_bucket
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
@@ -107,7 +111,8 @@ class TestExporter(object):
 
     @responses.activate
     def test_save_files_no_prefix(self, exporter):
-        file_uris = ['https://leanplum_export.storage.googleapis.com/export-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f-outputsessions-0']
+        file_uris = [('https://leanplum_export.storage.googleapis.com/export'
+                     '-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f-outputsessions-0')]
         bucket = 'abucket'
         prefix = ''
         file_body = b"data"
@@ -121,12 +126,15 @@ class TestExporter(object):
 
         with patch('leanplum_data_export.export.storage', spec=True) as MockStorage:
             self.file_contents = None
+
             def set_contents(filename):
                 with open(filename, "rb") as f:
                     self.file_contents = f.read()
 
             mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
             MockStorage.Client.return_value = mock_client
+
+            mock_client.list_blobs.side_effect = [[]]
             mock_client.get_bucket.return_value = mock_bucket
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
@@ -144,7 +152,8 @@ class TestExporter(object):
     @responses.activate
     def test_save_files_multiple_uris(self, exporter):
         n_files = 5
-        base_uri = "https://leanplum_export.storage.googleapis.com/export-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f"
+        base_uri = ("https://leanplum_export.storage.googleapis.com/export"
+                    "-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f")
         file_types = ["outputsessions", "outputexperiments"]
         file_uris = [f'{base_uri}-{ftype}-{i}' for ftype in file_types for i in range(n_files)]
         bucket = 'abucket'
@@ -160,12 +169,15 @@ class TestExporter(object):
 
         with patch('leanplum_data_export.export.storage', spec=True) as MockStorage:
             self.file_contents = None
+
             def set_contents(filename):
                 with open(filename, "rb") as f:
                     self.file_contents = f.read()
 
             mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
             MockStorage.Client.return_value = mock_client
+
+            mock_client.list_blobs.side_effect = [["hello/world"]]
             mock_client.get_bucket.return_value = mock_bucket
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
@@ -185,7 +197,8 @@ class TestExporter(object):
 
     @responses.activate
     def test_save_files_improper_file_format(self, exporter):
-        file_uris = ['https://leanplum_export.storage.googleapis.com/export-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f-outputsessions']
+        file_uris = [('https://leanplum_export.storage.googleapis.com/export'
+                      '-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f-outputsessions')]
         bucket = 'abucket'
         prefix = ''
         file_body = b"data"
@@ -197,15 +210,16 @@ class TestExporter(object):
              body=file_body,
              status=200)
 
-        with patch('leanplum_data_export.export.storage', spec=True) as MockStorage:
-            with pytest.raises(Exception) as e:
+        with patch('leanplum_data_export.export.storage', spec=True) as MockStorage: # noqa F841
+            with pytest.raises(Exception):
                 exporter.save_files(file_uris, bucket, prefix, date, "json")
 
     @responses.activate
     def test_export(self, exporter):
         date = "20190101"
         job_id = "testjobid"
-        file_uris = ['https://leanplum_export.storage.googleapis.com/export-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f-outputsessions-0']
+        file_uris = [('https://leanplum_export.storage.googleapis.com/export'
+                      '-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f-outputsessions-0')]
         bucket = 'abucket'
         prefix = 'aprefix'
         file_body = b"data"
@@ -227,21 +241,25 @@ class TestExporter(object):
             body=file_body,
             status=200)
 
-
         with patch('leanplum_data_export.export.bigquery', spec=True) as MockBq:
             with patch('leanplum_data_export.export.storage', spec=True) as MockStorage:
                 self.file_contents = None
+
                 def set_contents(filename):
                     with open(filename, "rb") as f:
                         self.file_contents = f.read()
 
                 mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
+
                 MockStorage.Client.return_value = mock_client
+
+                mock_client.list_blobs.side_effect = [[]]
                 mock_client.get_bucket.return_value = mock_bucket
                 mock_bucket.blob.return_value = mock_blob
                 mock_blob.upload_from_filename.side_effect = set_contents
 
-                mock_bq_client, mock_dataset_ref, mock_table_ref, mock_table, mock_config = Mock(), Mock(), Mock(), Mock(), Mock()
+                mock_bq_client, mock_dataset_ref = Mock(), Mock()
+                mock_table_ref, mock_table, mock_config = Mock(), Mock(), Mock()
                 mock_bq_client.dataset.return_value = mock_dataset_ref
                 MockBq.Client.return_value = mock_bq_client
                 MockBq.TableReference.return_value = mock_table_ref
@@ -259,11 +277,33 @@ class TestExporter(object):
                 assert not os.path.isdir("outputsessions")
 
                 mock_bq_client.dataset.assert_any_call(dataset_name)
+                mock_bq_client.delete_table.assert_called_with(mock_table, not_found_ok=True)
                 MockBq.TableReference.assert_any_call(mock_dataset_ref, f"outputsessions_{date}")
                 MockBq.Table.assert_any_call(mock_table_ref)
                 MockBq.ExternalConfig.assert_any_call("CSV")
-                assert mock_config.source_uris == [f"gs://{bucket}/{prefix}/{date}/outputsessions/*"]
-                assert mock_config.autodetect == True
+
+                expected_source_uris = [f"gs://{bucket}/{prefix}/{date}/outputsessions/*"]
+                assert mock_config.source_uris == expected_source_uris
+                assert mock_config.autodetect is True
                 assert mock_table.external_data_configuration == mock_config
                 mock_bq_client.create_table.assert_any_call(mock_table)
 
+    def test_delete_gcs_prefix(self, exporter):
+        client, bucket = Mock(), Mock()
+        blobs = ["hello/world"]
+        prefix = "hello"
+        client.list_blobs.side_effect = [blobs]
+
+        exporter.delete_gcs_prefix(client, bucket, prefix)
+
+        client.list_blobs.assert_called_with(bucket, prefix=prefix, max_results=1000)
+        bucket.delete_blobs.assert_called_with(blobs)
+
+    def test_delete_gcs_prefix_err_max_results(self, exporter):
+        client, bucket = Mock(), Mock()
+        blobs = ["hello/world" for i in range(1000)]
+        prefix = "hello"
+        client.list_blobs.side_effect = [blobs]
+
+        with pytest.raises(Exception):
+            exporter.delete_gcs_prefix(client, bucket, prefix)

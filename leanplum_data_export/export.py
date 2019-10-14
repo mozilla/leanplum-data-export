@@ -52,6 +52,7 @@ class LeanplumExporter(object):
 
         logging.info("Export URL: " + export_retrieve_url)
         loading = True
+
         while(loading):
             response = requests.get(export_retrieve_url)
             response.raise_for_status()
@@ -76,12 +77,15 @@ class LeanplumExporter(object):
         else:
             prefix = date
 
+        self.delete_gcs_prefix(client, bucket, prefix)
+
         for uri in file_uris:
             logging.info(f"Retrieving URI {uri}")
 
             parsed = self.filename_re.fullmatch(uri)
             if parsed is None:
-                raise Exception(f"Expected uri matching {LeanplumExporter.FILENAME_RE}, but got {uri}")
+                raise Exception((f"Expected uri matching {LeanplumExporter.FILENAME_RE}"
+                                 f", but got {uri}"))
 
             datatype, index = parsed.group(1), parsed.group(2)
             local_filename = f"{datatype}/{index}.{export_format}"
@@ -107,6 +111,16 @@ class LeanplumExporter(object):
 
         return datatypes
 
+    def delete_gcs_prefix(self, client, bucket, prefix):
+        max_results = 1000
+        blobs = list(client.list_blobs(bucket, prefix=prefix, max_results=max_results))
+
+        if len(blobs) == max_results:
+            raise Exception((f"Max result of {max_results} found at gs://{bucket.name}"
+                             f"/{prefix}, increase limit or paginate"))
+
+        bucket.delete_blobs(blobs)
+
     def create_external_tables(self, bucket_name, prefix, date, tables, dataset):
         gcs_loc = f"gs://{bucket_name}/{prefix}/{date}"
 
@@ -118,6 +132,8 @@ class LeanplumExporter(object):
             table_name = f"{t}_{date}"
             table_ref = bigquery.TableReference(dataset_ref, table_name)
             table = bigquery.Table(table_ref)
+
+            client.delete_table(table, not_found_ok=True)
 
             external_config = bigquery.ExternalConfig('CSV')
             external_config.source_uris = [f"{gcs_loc}/{t}/*"]
