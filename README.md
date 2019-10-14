@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/mozilla/leanplum_data_export.svg?style=svg)](https://circleci.com/gh/mozilla/leanplum_data_export)
+[![CircleCI](https://circleci.com/gh/mozilla/leanplum-data-export.svg?style=svg)](https://circleci.com/gh/mozilla/leanplum-data-export)
 
 # Leanplum Data Export
 This repository is the job to export Mozilla data from Leanplum and into BQ.
