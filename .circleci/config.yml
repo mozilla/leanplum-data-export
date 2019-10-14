@@ -57,7 +57,7 @@ jobs:
           command: docker run app:build test
       - run:
           name: Lint Code
-          command: docker run app:build flake8 leanplum_data_export/leanplum_data_export/ leanplum_data_export/tests/ --max-line-length 100
+          command: docker run app:build flake8 leanplum_data_export/
 
   deploy:
     docker:
