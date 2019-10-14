@@ -1,3 +1,4 @@
 pytest==5.2.0
 responses==0.10.6
 mock==3.0.5
+flake8==3.7.8
