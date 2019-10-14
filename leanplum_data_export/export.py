@@ -52,6 +52,7 @@ class LeanplumExporter(object):
 
         logging.info("Export URL: " + export_retrieve_url)
         loading = True
+
         while(loading):
             response = requests.get(export_retrieve_url)
             response.raise_for_status()
@@ -75,6 +76,8 @@ class LeanplumExporter(object):
             prefix = self.add_slash_if_not_present(prefix) + date
         else:
             prefix = date
+
+        self.delete_gcs_prefix(client, bucket, prefix)
 
         for uri in file_uris:
             logging.info(f"Retrieving URI {uri}")
@@ -106,6 +109,15 @@ class LeanplumExporter(object):
             base_dir.rmdir()
 
         return datatypes
+
+    def delete_gcs_prefix(self, client, bucket, prefix):
+        max_results = 1000
+        blobs = list(client.list_blobs(bucket, prefix=prefix, max_results=max_results))
+
+        if len(blobs) == max_results:
+            raise Exception(f"Max result of {max_result} found at gs://{bucket.name}/{prefix}, increase limit or paginate")
+
+        bucket.delete_blobs(blobs)
 
     def create_external_tables(self, bucket_name, prefix, date, tables, dataset):
         gcs_loc = f"gs://{bucket_name}/{prefix}/{date}"

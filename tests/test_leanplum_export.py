@@ -91,6 +91,8 @@ class TestExporter(object):
 
             mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
             MockStorage.Client.return_value = mock_client
+
+            mock_client.list_blobs.side_effect = [[]]
             mock_client.get_bucket.return_value = mock_bucket
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
@@ -127,6 +129,8 @@ class TestExporter(object):
 
             mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
             MockStorage.Client.return_value = mock_client
+
+            mock_client.list_blobs.side_effect = [[]]
             mock_client.get_bucket.return_value = mock_bucket
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
@@ -166,6 +170,8 @@ class TestExporter(object):
 
             mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
             MockStorage.Client.return_value = mock_client
+
+            mock_client.list_blobs.side_effect = [["hello/world"]]
             mock_client.get_bucket.return_value = mock_bucket
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
@@ -236,7 +242,10 @@ class TestExporter(object):
                         self.file_contents = f.read()
 
                 mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
+
                 MockStorage.Client.return_value = mock_client
+
+                mock_client.list_blobs.side_effect = [[]]
                 mock_client.get_bucket.return_value = mock_bucket
                 mock_bucket.blob.return_value = mock_blob
                 mock_blob.upload_from_filename.side_effect = set_contents
@@ -267,3 +276,22 @@ class TestExporter(object):
                 assert mock_table.external_data_configuration == mock_config
                 mock_bq_client.create_table.assert_any_call(mock_table)
 
+    def test_delete_gcs_prefix(self, exporter):
+        client, bucket = Mock(), Mock()
+        blobs = ["hello/world"]
+        prefix = "hello"
+        client.list_blobs.side_effect = [blobs]
+
+        exporter.delete_gcs_prefix(client, bucket, prefix)
+
+        client.list_blobs.assert_called_with(bucket, prefix=prefix, max_results=1000)
+        bucket.delete_blobs.assert_called_with(blobs)
+
+    def test_delete_gcs_prefix_err_max_results(self, exporter):
+        client, bucket = Mock(), Mock()
+        blobs = ["hello/world" for i in range(1000)]
+        prefix = "hello"
+        client.list_blobs.side_effect = [blobs]
+
+        with pytest.raises(Exception):
+            exporter.delete_gcs_prefix(client, bucket, prefix)
