@@ -20,11 +20,12 @@ class LeanplumExporter(object):
         self.client_key = client_key
         self.filename_re = re.compile(LeanplumExporter.FILENAME_RE)
 
-    def export(self, date, bucket, prefix, dataset, export_format=DEFAULT_EXPORT_FORMAT):
+    def export(self, date, bucket, prefix, dataset,
+               table_prefix=None, export_format=DEFAULT_EXPORT_FORMAT):
         job_id = self.init_export(date, export_format)
         file_uris = self.get_files(job_id)
         tables = self.save_files(file_uris, bucket, prefix, date, export_format)
-        self.create_external_tables(bucket, prefix, date, tables, dataset)
+        self.create_external_tables(bucket, prefix, date, tables, dataset, table_prefix)
 
     def init_export(self, date, export_format):
         export_init_url = (f"http://www.leanplum.com/api"
@@ -121,22 +122,27 @@ class LeanplumExporter(object):
 
         bucket.delete_blobs(blobs)
 
-    def create_external_tables(self, bucket_name, prefix, date, tables, dataset):
+    def create_external_tables(self, bucket_name, prefix, date, tables, dataset, table_prefix):
+        if table_prefix is not None:
+            table_prefix += "_"
+        else:
+            table_prefix = ""
+
         gcs_loc = f"gs://{bucket_name}/{prefix}/{date}"
 
         client = bigquery.Client()
 
         dataset_ref = client.dataset(dataset)
 
-        for t in tables:
-            table_name = f"{t}_{date}"
+        for leanplum_name in tables:
+            table_name = f"{table_prefix}{leanplum_name}_{date}"
             table_ref = bigquery.TableReference(dataset_ref, table_name)
             table = bigquery.Table(table_ref)
 
             client.delete_table(table, not_found_ok=True)
 
             external_config = bigquery.ExternalConfig('CSV')
-            external_config.source_uris = [f"{gcs_loc}/{t}/*"]
+            external_config.source_uris = [f"{gcs_loc}/{leanplum_name}/*"]
             external_config.autodetect = True
 
             table.external_data_configuration = external_config
