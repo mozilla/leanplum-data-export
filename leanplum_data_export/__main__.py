@@ -19,9 +19,10 @@ from .export import LeanplumExporter
 @click.option("--prefix", default="")
 @click.option("--bq-dataset", required=True)
 @click.option("--table-prefix", default=None)
-def export_leanplum(app_id, client_key, date, bucket, prefix, bq_dataset, table_prefix):
+@click.option("--version", default=1)
+def export_leanplum(app_id, client_key, date, bucket, prefix, bq_dataset, table_prefix, version):
     exporter = LeanplumExporter(app_id, client_key)
-    exporter.export(date, bucket, prefix, bq_dataset, table_prefix)
+    exporter.export(date, bucket, prefix, bq_dataset, table_prefix, version)
 
 
 @click.group()
