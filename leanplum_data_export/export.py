@@ -13,7 +13,8 @@ class LeanplumExporter(object):
     FINISHED_STATE = "FINISHED"
     DEFAULT_SLEEP_SECONDS = 10
     DEFAULT_EXPORT_FORMAT = "csv"
-    FILENAME_RE = "^https://leanplum_export.storage.googleapis.com/export-.*-([a-z0-9]+)-([0-9]+)$"
+    FILENAME_RE = (r"^https://leanplum_export.storage.googleapis.com"
+                   "/export-.*-output([a-z0-9]+)-([0-9]+)$")
 
     def __init__(self, app_id, client_key):
         self.app_id = app_id
