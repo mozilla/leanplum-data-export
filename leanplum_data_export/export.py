@@ -13,18 +13,20 @@ class LeanplumExporter(object):
     FINISHED_STATE = "FINISHED"
     DEFAULT_SLEEP_SECONDS = 10
     DEFAULT_EXPORT_FORMAT = "csv"
-    FILENAME_RE = "^https://leanplum_export.storage.googleapis.com/export-.*-([a-z0-9]+)-([0-9]+)$"
+    FILENAME_RE = (r"^https://leanplum_export.storage.googleapis.com"
+                   "/export-.*-output([a-z0-9]+)-([0-9]+)$")
 
     def __init__(self, app_id, client_key):
         self.app_id = app_id
         self.client_key = client_key
         self.filename_re = re.compile(LeanplumExporter.FILENAME_RE)
 
-    def export(self, date, bucket, prefix, dataset, export_format=DEFAULT_EXPORT_FORMAT):
+    def export(self, date, bucket, prefix, dataset, table_prefix,
+               version, export_format=DEFAULT_EXPORT_FORMAT):
         job_id = self.init_export(date, export_format)
         file_uris = self.get_files(job_id)
-        tables = self.save_files(file_uris, bucket, prefix, date, export_format)
-        self.create_external_tables(bucket, prefix, date, tables, dataset)
+        tables = self.save_files(file_uris, bucket, prefix, date, export_format, version)
+        self.create_external_tables(bucket, prefix, date, tables, dataset, table_prefix, version)
 
     def init_export(self, date, export_format):
         export_init_url = (f"http://www.leanplum.com/api"
@@ -67,16 +69,18 @@ class LeanplumExporter(object):
 
         return response.json()['response'][0]['files']
 
-    def save_files(self, file_uris, bucket_name, prefix, date, export_format):
+    def save_files(self, file_uris, bucket_name, prefix, date, export_format, version):
         client = storage.Client()
         bucket = client.get_bucket(bucket_name)
         datatypes = set()
 
+        version_str = f"v{version}"
         if prefix:
-            prefix = self.add_slash_if_not_present(prefix) + date
+            prefix = self.add_slash_if_not_present(prefix) + version_str
         else:
-            prefix = date
+            prefix = version_str
 
+        prefix += f"/{date}"
         self.delete_gcs_prefix(client, bucket, prefix)
 
         for uri in file_uris:
@@ -121,22 +125,30 @@ class LeanplumExporter(object):
 
         bucket.delete_blobs(blobs)
 
-    def create_external_tables(self, bucket_name, prefix, date, tables, dataset):
-        gcs_loc = f"gs://{bucket_name}/{prefix}/{date}"
+    def create_external_tables(self, bucket_name, prefix, date, tables,
+                               dataset, table_prefix, version):
+        if table_prefix:
+            table_prefix += "_"
+        else:
+            table_prefix = ""
+
+        gcs_loc = f"gs://{bucket_name}/{prefix}/v{version}/{date}"
 
         client = bigquery.Client()
 
         dataset_ref = client.dataset(dataset)
 
-        for t in tables:
-            table_name = f"{t}_{date}"
+        for leanplum_name in tables:
+            table_name = f"{table_prefix}{leanplum_name}_v{version}_{date}"
+            logging.info(f"Creating table {table_name}")
+
             table_ref = bigquery.TableReference(dataset_ref, table_name)
             table = bigquery.Table(table_ref)
 
             client.delete_table(table, not_found_ok=True)
 
             external_config = bigquery.ExternalConfig('CSV')
-            external_config.source_uris = [f"{gcs_loc}/{t}/*"]
+            external_config.source_uris = [f"{gcs_loc}/{leanplum_name}/*"]
             external_config.autodetect = True
 
             table.external_data_configuration = external_config

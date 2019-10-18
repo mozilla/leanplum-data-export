@@ -99,15 +99,15 @@ class TestExporter(object):
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
 
-            exporter.save_files(file_uris, bucket, prefix, date, "json")
+            exporter.save_files(file_uris, bucket, prefix, date, "json", 1)
 
-            suffix = f"outputsessions/0.json"
+            suffix = f"sessions/0.json"
             mock_client.get_bucket.assert_called_with(bucket)
-            mock_bucket.blob.assert_called_with(f"{prefix}/{date}/{suffix}")
+            mock_bucket.blob.assert_called_with(f"{prefix}/v1/{date}/{suffix}")
             mock_blob.upload_from_filename.assert_called_with(suffix)
             assert self.file_contents == file_body
             assert not os.path.isfile(suffix)
-            assert not os.path.isdir("outputsessions")
+            assert not os.path.isdir("sessions")
 
     @responses.activate
     def test_save_files_no_prefix(self, exporter):
@@ -139,23 +139,23 @@ class TestExporter(object):
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
 
-            exporter.save_files(file_uris, bucket, prefix, date, "json")
+            exporter.save_files(file_uris, bucket, prefix, date, "json", 1)
 
-            suffix = f"outputsessions/0.json"
+            suffix = f"sessions/0.json"
             mock_client.get_bucket.assert_called_with(bucket)
-            mock_bucket.blob.assert_called_with(f"{date}/{suffix}")
+            mock_bucket.blob.assert_called_with(f"v1/{date}/{suffix}")
             mock_blob.upload_from_filename.assert_called_with(suffix)
             assert self.file_contents == file_body
             assert not os.path.isfile(suffix)
-            assert not os.path.isdir("outputsessions")
+            assert not os.path.isdir("sessions")
 
     @responses.activate
     def test_save_files_multiple_uris(self, exporter):
         n_files = 5
         base_uri = ("https://leanplum_export.storage.googleapis.com/export"
-                    "-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f")
-        file_types = ["outputsessions", "outputexperiments"]
-        file_uris = [f'{base_uri}-{ftype}-{i}' for ftype in file_types for i in range(n_files)]
+                    "-5094741967896576-60c43e66-30fe-4e21-9bbd-563d2749b96f-output")
+        file_types = ["sessions", "experiments"]
+        file_uris = [f'{base_uri}{ftype}-{i}' for ftype in file_types for i in range(n_files)]
         bucket = 'abucket'
         prefix = ''
         file_body = b"data"
@@ -182,14 +182,14 @@ class TestExporter(object):
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
 
-            tables = exporter.save_files(file_uris, bucket, prefix, date, "json")
+            tables = exporter.save_files(file_uris, bucket, prefix, date, "json", 1)
             mock_client.get_bucket.assert_called_with(bucket)
             assert tables == set(file_types)
 
             for ftype in file_types:
                 for i in range(n_files):
                     suffix = f"{ftype}/{i}.json"
-                    mock_bucket.blob.assert_any_call(f"{date}/{suffix}")
+                    mock_bucket.blob.assert_any_call(f"v1/{date}/{suffix}")
                     mock_blob.upload_from_filename.assert_any_call(suffix)
                     assert self.file_contents == file_body
                     assert not os.path.isfile(suffix)
@@ -212,7 +212,7 @@ class TestExporter(object):
 
         with patch('leanplum_data_export.export.storage', spec=True) as MockStorage: # noqa F841
             with pytest.raises(Exception):
-                exporter.save_files(file_uris, bucket, prefix, date, "json")
+                exporter.save_files(file_uris, bucket, prefix, date, "json", 1)
 
     @responses.activate
     def test_export(self, exporter):
@@ -266,23 +266,23 @@ class TestExporter(object):
                 MockBq.Table.return_value = mock_table
                 MockBq.ExternalConfig.return_value = mock_config
 
-                exporter.export(date, bucket, prefix, dataset_name)
+                exporter.export(date, bucket, prefix, dataset_name, "", 1)
 
-                suffix = f"outputsessions/0.csv"
+                suffix = f"sessions/0.csv"
                 mock_client.get_bucket.assert_called_with(bucket)
-                mock_bucket.blob.assert_called_with(f"{prefix}/{date}/{suffix}")
+                mock_bucket.blob.assert_called_with(f"{prefix}/v1/{date}/{suffix}")
                 mock_blob.upload_from_filename.assert_called_with(suffix)
                 assert self.file_contents == file_body
                 assert not os.path.isfile(suffix)
-                assert not os.path.isdir("outputsessions")
+                assert not os.path.isdir("sessions")
 
                 mock_bq_client.dataset.assert_any_call(dataset_name)
                 mock_bq_client.delete_table.assert_called_with(mock_table, not_found_ok=True)
-                MockBq.TableReference.assert_any_call(mock_dataset_ref, f"outputsessions_{date}")
+                MockBq.TableReference.assert_any_call(mock_dataset_ref, f"sessions_v1_{date}")
                 MockBq.Table.assert_any_call(mock_table_ref)
                 MockBq.ExternalConfig.assert_any_call("CSV")
 
-                expected_source_uris = [f"gs://{bucket}/{prefix}/{date}/outputsessions/*"]
+                expected_source_uris = [f"gs://{bucket}/{prefix}/v1/{date}/sessions/*"]
                 assert mock_config.source_uris == expected_source_uris
                 assert mock_config.autodetect is True
                 assert mock_table.external_data_configuration == mock_config
@@ -307,3 +307,36 @@ class TestExporter(object):
 
         with pytest.raises(Exception):
             exporter.delete_gcs_prefix(client, bucket, prefix)
+
+    def test_created_external_tables(self, exporter):
+        date = "20190101"
+        bucket = 'abucket'
+        prefix = 'aprefix'
+        dataset_name = "leanplum_dataset"
+        tables = ["sessions"]
+        table_prefix = "prefix"
+
+        with patch('leanplum_data_export.export.bigquery', spec=True) as MockBq:
+            mock_bq_client, mock_dataset_ref = Mock(), Mock()
+            mock_table_ref, mock_table, mock_config = Mock(), Mock(), Mock()
+            mock_bq_client.dataset.return_value = mock_dataset_ref
+            MockBq.Client.return_value = mock_bq_client
+            MockBq.TableReference.return_value = mock_table_ref
+            MockBq.Table.return_value = mock_table
+            MockBq.ExternalConfig.return_value = mock_config
+
+            exporter.create_external_tables(
+                bucket, prefix, date, tables, dataset_name, table_prefix, 1)
+
+            mock_bq_client.dataset.assert_any_call(dataset_name)
+            mock_bq_client.delete_table.assert_called_with(mock_table, not_found_ok=True)
+            MockBq.TableReference.assert_any_call(mock_dataset_ref,
+                                                  f"{table_prefix}_sessions_v1_{date}")
+            MockBq.Table.assert_any_call(mock_table_ref)
+            MockBq.ExternalConfig.assert_any_call("CSV")
+
+            expected_source_uris = [f"gs://{bucket}/{prefix}/v1/{date}/sessions/*"]
+            assert mock_config.source_uris == expected_source_uris
+            assert mock_config.autodetect is True
+            assert mock_table.external_data_configuration == mock_config
+            mock_bq_client.create_table.assert_any_call(mock_table)
