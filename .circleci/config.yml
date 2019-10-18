@@ -1,3 +1,10 @@
+# These environment variables must be set in CircleCI UI
+#
+# GCLOUD_SERVICE_KEY - key for pushing images to gcr
+# GOOGLE_PROJECT_ID - moz-fx-data-airflow-prod-88e0
+# GOOGLE_COMPUTE_ZONE - us-west1-b
+#
+
 ####################
 # CircleCI configuration reference:
 #   https://circleci.com/docs/2.0/configuration-reference
@@ -13,21 +20,10 @@ jobs:
   build:
     docker:
       - image: docker:stable-git
-    working_directory: /dockerflow
+    working_directory: ~/mozilla/leanplum-data-export
     steps:
       - checkout
       - setup_remote_docker
-
-      - run:
-          name: Create a version.json
-          command: |
-            # create a version.json per https://github.com/mozilla-services/Dockerflow/blob/master/docs/version_object.md
-            printf '{"commit":"%s","version":"%s","source":"https://github.com/%s/%s","build":"%s"}\n' \
-            "$CIRCLE_SHA1" \
-            "$CIRCLE_TAG" \
-            "$CIRCLE_PROJECT_USERNAME" \
-            "$CIRCLE_PROJECT_REPONAME" \
-            "$CIRCLE_BUILD_URL" > version.json
       - run:
           name: Build Docker image
           command: docker build -t app:build .
@@ -61,7 +57,8 @@ jobs:
 
   deploy:
     docker:
-      - image: docker:18.02.0-ce
+      - image: google/cloud-sdk
+    working_directory: ~/mozilla/leanplum-data-export
     steps:
       - setup_remote_docker
       - restore_cache:
@@ -70,19 +67,26 @@ jobs:
           name: Restore Docker image cache
           command: docker load -i /cache/docker.tar
       - run:
-          name: Deploy to Dockerhub
+          name: Configure gcloud
           command: |
-            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-            # deploy master
+            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+            gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+            gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE}
+            gcloud auth configure-docker
+      - run:
+          name: Deploy to GCR
+          command: |
+            DOCKER_IMAGE="gcr.io/${GOOGLE_PROJECT_ID}/leanplum-data-export"
+            # Deploy master
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              docker tag app:build ${DOCKERHUB_REPO}:latest
-              docker push ${DOCKERHUB_REPO}:latest
+              docker tag app:build "${DOCKER_IMAGE}:latest"
+              docker push "${DOCKER_IMAGE}:latest"
             elif  [ ! -z "${CIRCLE_TAG}" ]; then
-            # deploy a release tag...
-              echo "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
-              docker tag app:build "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+            # Deploy a release tag...
+              echo "${DOCKER_IMAGE}:${CIRCLE_TAG}"
+              docker tag app:build "${DOCKER_IMAGE}:${CIRCLE_TAG}"
               docker images
-              docker push "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+              docker push "${DOCKER_IMAGE}:${CIRCLE_TAG}"
             fi
 
 #########################################################
