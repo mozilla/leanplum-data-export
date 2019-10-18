@@ -12,8 +12,8 @@ leanplum-data-export export-leanplum \
   --client-key $LEANPLUM_CLIENT_KEY \
   --date 20190101 \
   --bucket gcs-leanplum-export \
-  --bq-dataset dev_external \
   --table-prefix leanplum \
+  --bq-dataset dev_external \
   --prefix dev
 ```
 
@@ -33,9 +33,9 @@ make run COMMAND="leanplum-data-export export-leanplum \
   --client-key $LEANPLUM_CLIENT_KEY \
   --date 20190101 \
   --bucket gcs-leanplum-export \
-  --prefix dev \
   --table-prefix leanplum \
-  --bq-dataset leanplum"
+  --bq-dataset leanplum \
+  --prefix dev"
 ```
 
 That will create the dataset in BQ, download the files, and make
