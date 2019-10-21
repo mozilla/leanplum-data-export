@@ -71,7 +71,9 @@ class LeanplumExporter(object):
 
     def save_files(self, file_uris, bucket_name, prefix, date, export_format, version):
         client = storage.Client()
-        bucket = client.get_bucket(bucket_name)
+        # Avoid calling storage.buckets.get since we don't need bucket metadata
+        # https://github.com/googleapis/google-cloud-python/issues/3433
+        bucket = client.bucket(bucket_name)
         datatypes = set()
 
         version_str = f"v{version}"

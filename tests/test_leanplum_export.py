@@ -95,14 +95,14 @@ class TestExporter(object):
             MockStorage.Client.return_value = mock_client
 
             mock_client.list_blobs.side_effect = [[]]
-            mock_client.get_bucket.return_value = mock_bucket
+            mock_client.bucket.return_value = mock_bucket
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
 
             exporter.save_files(file_uris, bucket, prefix, date, "json", 1)
 
             suffix = f"sessions/0.json"
-            mock_client.get_bucket.assert_called_with(bucket)
+            mock_client.bucket.assert_called_with(bucket)
             mock_bucket.blob.assert_called_with(f"{prefix}/v1/{date}/{suffix}")
             mock_blob.upload_from_filename.assert_called_with(suffix)
             assert self.file_contents == file_body
@@ -135,14 +135,14 @@ class TestExporter(object):
             MockStorage.Client.return_value = mock_client
 
             mock_client.list_blobs.side_effect = [[]]
-            mock_client.get_bucket.return_value = mock_bucket
+            mock_client.bucket.return_value = mock_bucket
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
 
             exporter.save_files(file_uris, bucket, prefix, date, "json", 1)
 
             suffix = f"sessions/0.json"
-            mock_client.get_bucket.assert_called_with(bucket)
+            mock_client.bucket.assert_called_with(bucket)
             mock_bucket.blob.assert_called_with(f"v1/{date}/{suffix}")
             mock_blob.upload_from_filename.assert_called_with(suffix)
             assert self.file_contents == file_body
@@ -178,12 +178,12 @@ class TestExporter(object):
             MockStorage.Client.return_value = mock_client
 
             mock_client.list_blobs.side_effect = [["hello/world"]]
-            mock_client.get_bucket.return_value = mock_bucket
+            mock_client.bucket.return_value = mock_bucket
             mock_bucket.blob.return_value = mock_blob
             mock_blob.upload_from_filename.side_effect = set_contents
 
             tables = exporter.save_files(file_uris, bucket, prefix, date, "json", 1)
-            mock_client.get_bucket.assert_called_with(bucket)
+            mock_client.bucket.assert_called_with(bucket)
             assert tables == set(file_types)
 
             for ftype in file_types:
@@ -254,7 +254,7 @@ class TestExporter(object):
                 MockStorage.Client.return_value = mock_client
 
                 mock_client.list_blobs.side_effect = [[]]
-                mock_client.get_bucket.return_value = mock_bucket
+                mock_client.bucket.return_value = mock_bucket
                 mock_bucket.blob.return_value = mock_blob
                 mock_blob.upload_from_filename.side_effect = set_contents
 
@@ -269,7 +269,7 @@ class TestExporter(object):
                 exporter.export(date, bucket, prefix, dataset_name, "", 1)
 
                 suffix = f"sessions/0.csv"
-                mock_client.get_bucket.assert_called_with(bucket)
+                mock_client.bucket.assert_called_with(bucket)
                 mock_bucket.blob.assert_called_with(f"{prefix}/v1/{date}/{suffix}")
                 mock_blob.upload_from_filename.assert_called_with(suffix)
                 assert self.file_contents == file_body
