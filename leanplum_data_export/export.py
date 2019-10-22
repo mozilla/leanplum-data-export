@@ -26,7 +26,8 @@ class LeanplumExporter(object):
         job_id = self.init_export(date, export_format)
         file_uris = self.get_files(job_id)
         tables = self.save_files(file_uris, bucket, prefix, date, export_format, version)
-        self.create_external_tables(bucket, prefix, date, tables, project, dataset, table_prefix, version)
+        self.create_external_tables(bucket, prefix, date, tables,
+                                    project, dataset, table_prefix, version)
 
     def init_export(self, date, export_format):
         export_init_url = (f"http://www.leanplum.com/api"
