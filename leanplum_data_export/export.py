@@ -22,11 +22,12 @@ class LeanplumExporter(object):
         self.filename_re = re.compile(LeanplumExporter.FILENAME_RE)
 
     def export(self, date, bucket, prefix, dataset, table_prefix,
-               version, export_format=DEFAULT_EXPORT_FORMAT):
+               version, project, export_format=DEFAULT_EXPORT_FORMAT):
         job_id = self.init_export(date, export_format)
         file_uris = self.get_files(job_id)
         tables = self.save_files(file_uris, bucket, prefix, date, export_format, version)
-        self.create_external_tables(bucket, prefix, date, tables, dataset, table_prefix, version)
+        self.create_external_tables(bucket, prefix, date, tables,
+                                    project, dataset, table_prefix, version)
 
     def init_export(self, date, export_format):
         export_init_url = (f"http://www.leanplum.com/api"
@@ -128,7 +129,7 @@ class LeanplumExporter(object):
         bucket.delete_blobs(blobs)
 
     def create_external_tables(self, bucket_name, prefix, date, tables,
-                               dataset, table_prefix, version):
+                               project, dataset, table_prefix, version):
         if table_prefix:
             table_prefix += "_"
         else:
@@ -136,7 +137,7 @@ class LeanplumExporter(object):
 
         gcs_loc = f"gs://{bucket_name}/{prefix}/v{version}/{date}"
 
-        client = bigquery.Client()
+        client = bigquery.Client(project=project)
 
         dataset_ref = client.dataset(dataset)
 
