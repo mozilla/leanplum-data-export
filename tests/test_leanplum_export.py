@@ -266,7 +266,7 @@ class TestExporter(object):
                 MockBq.Table.return_value = mock_table
                 MockBq.ExternalConfig.return_value = mock_config
 
-                exporter.export(date, bucket, prefix, dataset_name, "", 1)
+                exporter.export(date, bucket, prefix, dataset_name, "", 1, "test-project")
 
                 suffix = f"sessions/0.csv"
                 mock_client.bucket.assert_called_with(bucket)
@@ -326,7 +326,7 @@ class TestExporter(object):
             MockBq.ExternalConfig.return_value = mock_config
 
             exporter.create_external_tables(
-                bucket, prefix, date, tables, dataset_name, table_prefix, 1)
+                bucket, prefix, date, tables, "test-project", dataset_name, table_prefix, 1)
 
             mock_bq_client.dataset.assert_any_call(dataset_name)
             mock_bq_client.delete_table.assert_called_with(mock_table, not_found_ok=True)
