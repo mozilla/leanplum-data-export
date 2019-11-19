@@ -194,7 +194,9 @@ class LeanplumExporter(object):
             else:
                 sql = f"INSERT INTO `{dataset}.{table_name}` {select_sql}"
 
-            logging.info(f"Inserting into native table {dataset}.{table_name} from {ext_dataset}.{ext_table_name}")
+            logging.info((
+                f"Inserting into native table {dataset}.{table_name} "
+                f"from {ext_dataset}.{ext_table_name}"))
             logging.info(sql)
 
             job = self.bq_client.query(sql)
@@ -213,11 +215,11 @@ class LeanplumExporter(object):
             self.bq_client.delete_table(table)
 
     def get_table_exists(self, table):
-       try:
-           table = self.bq_client.get_table(table)
-           return True
-       except exceptions.NotFound:
-           return False
+        try:
+            table = self.bq_client.get_table(table)
+            return True
+        except exceptions.NotFound:
+            return False
 
     def get_table_name(self, table_prefix, leanplum_name, version, date=None):
         if table_prefix:

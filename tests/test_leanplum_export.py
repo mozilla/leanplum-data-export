@@ -248,7 +248,6 @@ class TestExporter(object):
         with patch('leanplum_data_export.export.bigquery', spec=True) as MockBq:
             with patch('leanplum_data_export.export.storage', spec=True) as MockStorage:
                 mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
-                mock_job_config = Mock()
 
                 mock_client.list_blobs.side_effect = [[]]
                 mock_client.bucket.return_value = mock_bucket
@@ -291,7 +290,8 @@ class TestExporter(object):
                 MockBq.TableReference.assert_any_call(mock_dataset_ref, "sessions_v1")
 
                 delete_query = (
-                    f"DELETE FROM `{dataset_name}.sessions_v1` WHERE load_date = PARSE_DATE('%Y%m%d', '{date}')")
+                    f"DELETE FROM `{dataset_name}.sessions_v1` "
+                    f"WHERE load_date = PARSE_DATE('%Y%m%d', '{date}')")
                 mock_bq_client.query.assert_any_call(delete_query)
 
                 expected_query = (
@@ -303,7 +303,7 @@ class TestExporter(object):
                 mock_bq_client.delete_table.assert_any_call(mock_table)
 
     @responses.activate
-    def test_export_new_table(self, exporter):
+    def test_export_existing_table(self, exporter):
         date = "20190101"
         job_id = "testjobid"
         file_uris = [('https://leanplum_export.storage.googleapis.com/export'
@@ -339,7 +339,6 @@ class TestExporter(object):
         with patch('leanplum_data_export.export.bigquery', spec=True) as MockBq:
             with patch('leanplum_data_export.export.storage', spec=True) as MockStorage:
                 mock_bucket, mock_client, mock_blob = Mock(), Mock(), Mock()
-                mock_job_config = Mock()
 
                 mock_client.list_blobs.side_effect = [[]]
                 mock_client.bucket.return_value = mock_bucket
@@ -381,7 +380,8 @@ class TestExporter(object):
                 MockBq.TableReference.assert_any_call(mock_dataset_ref, "sessions_v1")
 
                 delete_query = (
-                    f"DELETE FROM `{dataset_name}.sessions_v1` WHERE load_date = PARSE_DATE('%Y%m%d', '{date}')")
+                    f"DELETE FROM `{dataset_name}.sessions_v1` "
+                    f"WHERE load_date = PARSE_DATE('%Y%m%d', '{date}')")
                 mock_bq_client.query.assert_any_call(delete_query)
 
                 insert_query = (
