@@ -8,12 +8,10 @@ import click
 import logging
 import sys
 
-from .export import LeanplumExporter
+from leanplum_data_export.export import LeanplumExporter
 
 
 @click.command()
-@click.option("--app-id", required=True)
-@click.option("--client-key", required=True)
 @click.option("--date", required=True)
 @click.option("--bucket", required=True)
 @click.option("--prefix", default="")
@@ -21,10 +19,15 @@ from .export import LeanplumExporter
 @click.option("--project", required=True)
 @click.option("--table-prefix", default=None)
 @click.option("--version", default=1)
-def export_leanplum(app_id, client_key, date, bucket, prefix,
-                    bq_dataset, table_prefix, version, project):
-    exporter = LeanplumExporter(app_id, client_key)
-    exporter.export(date, bucket, prefix, bq_dataset, table_prefix, version, project)
+@click.option("--s3-bucket", required=True,
+              help="Name of the bucket to retrieve exported streaming data from")
+@click.option("--clean/--no-clean", default=False,
+              help="A clean run will reprocess the entire day.  "
+                   "By default, files that have already been processed will be ignored.")
+def export_leanplum(date, bucket, prefix, bq_dataset, table_prefix,
+                    version, project, s3_bucket, clean):
+    exporter = LeanplumExporter(project)
+    exporter.export(date, s3_bucket, bucket, prefix, bq_dataset, table_prefix, version, clean)
 
 
 @click.group()
